@@ -1,0 +1,287 @@
+---
+title: "Danish Bird Genome plot"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup}
+rm(list = ls())
+# 加载所需的库
+library(ggplot2)
+library(reshape2)
+library(readxl)
+library(dplyr)
+library("ggsci")
+library(see)
+
+setwd("/Users/chenguangji/Desktop/02.B10K/05.丹麦鸟DBG/Plot/")
+# 读取数据
+data = read_excel("Plot_20240716.xlsx") 
+data_filter <- data %>% filter(Note=="Paper & Website")
+data_filter$`Construct library technology`[data_filter$`Construct library technology`=="st-LFR technology"]="st-LFR"
+data_filter$`Construct library technology`[data_filter$`Construct library technology`=="Standard Next-Generation technology"]="short-insert"
+data_filter$`Construct library technology`[data_filter$`Construct library technology`=="10X Genomics Linked reads"]="10X"
+
+data_filter.pub <- data %>% filter(Note=="Published")
+
+taxo= data %>% select(c("Scientific name","Genus","Family","Order")) %>% unique.data.frame()
+
+Orders=c("Passeriformes","Falconiformes","Coraciiformes","Piciformes","Strigiformes","Accipitriformes","Pelecaniformes","Pterocliformes","Bucerotiformes","Gaviiformes","Procellariiformes","Charadriiformes","Gruiformes","Caprimulgiformes","Otidiformes","Cuculiformes","Columbiformes","Podicipediformes","Galliformes","Anseriformes")
+
+```
+
+```{r assembly}
+as.order.spe=unique((data %>% arrange(desc(as.numeric(as.character(`Scaffold N50`)))))$`Scientific name`)
+# data_melted.as <- melt(data_filter %>% mutate("Genome Size"=`Total Length (bp)`) %>% select(c("Scientific name","Contig N50","Scaffold N50","Genome Size")), id.vars = "Scientific name") %>% mutate(value=as.numeric(as.character(value)))
+data_melted.as <- melt(data_filter %>% mutate("Genome Size"=`Total Length (bp)`) %>% select(c("Scientific name","Contig N50","Scaffold N50","Genome Size")), id.vars = "Scientific name") %>% mutate(value=as.numeric(as.character(value)))
+data_melted.as <- data_melted.as %>% mutate(`Scientific name`=factor(`Scientific name`,levels=as.order.spe),variable=factor(variable,levels=c("Genome Size","Scaffold N50","Contig N50")))
+
+ggplot(data_melted.as %>% filter(variable!="Genome Size"),aes(x=`Scientific name`,y=value,fill=variable,color=variable,group=variable))+
+  geom_point(size=1)+
+  # geom_line()+
+  facet_grid(variable~.,scales = "free_y")+
+  scale_y_log10(labels = scales::label_log(base = 10,digits=2))+
+  labs(x  = "Danish Bird Genomes", y = "Unit (bp)",fill="",color="") +
+  theme_classic() + theme(axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),legend.position = "top",panel.grid = element_blank(),strip.background = element_blank())
+ggsave("./assembly_20240716_all.pdf",w=6.2,h=5)
+ggsave("./assembly_20240716_all.png",w=6.2,h=5)
+
+data_melted.as.CN <- data_melted.as %>% filter(variable=="Contig N50") %>% 
+  mutate(group=ifelse(value<10000,"<10k",
+                      ifelse(value<25000,"10k - 25k",
+                      ifelse(value<50000,"25k - 50k",
+                             ifelse(value<75000,"50k - 75k",
+                             ifelse(value<100000,"75k - 100k",
+                                    ifelse(value<250000,"100k - 250k",
+                                           ifelse(value<500000,"250k - 500k",">500k"))))))))
+data_melted.as.SN <- data_melted.as %>% filter(variable=="Scaffold N50") %>% 
+  mutate(group=ifelse(value<10000,"<10k",
+                      ifelse(value<100000,"10k - 100k",
+                             ifelse(value<500000,"100k - 500k",
+                                    ifelse(value<1000000,"500k - 1M",
+                                           ifelse(value<5000000,"1M - 5M",
+                                                  ifelse(value<10000000,"5M - 10M",
+                                                         ifelse(value<20000000,"10M - 20M",
+                                                                ifelse(value<30000000,"20M - 30M",">30M")))))))))
+
+data_melted.as_v2<-rbind.data.frame(data_melted.as.SN,data_melted.as.CN) %>% mutate(group=factor(group,levels=c("<10k","10k - 25k","25k - 50k", "50k - 75k","75k - 100k","100k - 250k","250k - 500k", "10k - 100k", "100k - 500k", ">500k", "500k - 1M", "1M - 5M", "5M - 10M", "10M - 20M","20M - 30M", ">30M")))
+
+ggplot(data_melted.as_v2,aes(x=group,group=variable,fill=variable))+
+  geom_bar(stat = "count")+
+  geom_text(stat='count',aes(label=..count..), vjust=0.4, color="black", size=3)+
+  facet_wrap(.~variable,nrow=2,scales = "free")+
+  labs(x  = "Danish Bird Genomes", y = "Counts",fill="",color="") +
+  theme_classic() + theme(legend.position = "right",panel.grid = element_blank(),strip.background = element_blank(),
+                          axis.text.x = element_text(angle = 45,hjust=1,vjust=1))
+ggsave("./assembly_20240716_all_v2.pdf",w=6.2,h=8)
+ggsave("./assembly_20240716_all_v2.png",w=6.2,h=8)
+
+
+ggplot(data %>% mutate("Scaffold N50"=as.numeric(as.character(`Scaffold N50`)), "Genome Size (Gb)"=(`Total Length (bp)`)/1000000000),
+       aes(x=`Scaffold N50`,y=`Contig N50`,fill=`Genome Size (Gb)`,color=`Genome Size (Gb)`,shape=`Note`))+
+  geom_point(size=1)+
+  # geom_line()+
+  # facet_grid(variable~.,scales = "free_y")+
+  scale_y_log10(labels = scales::label_log(base = 10,digits=2))+
+  scale_x_log10(labels = scales::label_log(base = 10,digits=2))+
+  scale_color_gradient(low = "pink",high = "red")+
+  scale_fill_gradient(low = "pink",high = "red")+
+  labs(x  = "Scaffold N50 (bp)", y = "Contig N50 (bp)",fill="Genome Size\n(Gb)",color="Genome Size\n(Gb)") +
+  theme_classic() + 
+  theme(legend.position = c(0.2,0.75),panel.grid = element_blank(),strip.background = element_blank())
+ggsave("./assembly_20240716_all_v3.pdf",w=5.5,h=5.5)
+ggsave("./assembly_20240716_all_v3.png",w=5.5,h=5.5)
+
+```
+
+
+```{r BUSCO}
+# 将数据框整理为长格式，以便于在ggplot中进行绘图
+# busco.order.spe=(data_filter %>% arrange(desc(`Complete BUSCOs (aves_odb10)`)))$`Scientific name`
+# data_melted.busco <- melt(data_filter %>% select(c("Scientific name","Complete and Single-copy BUSCOs (S)","Complete and Duplicated BUSCOs (D)","Fragmented BUSCOs (F)","Missing BUSCOs (M)")), id.vars = "Scientific name") %>% mutate(value=as.numeric(as.character(value)), variable=factor(variable,levels = rev(c("Complete and Single-copy BUSCOs (S)","Complete and Duplicated BUSCOs (D)","Fragmented BUSCOs (F)","Missing BUSCOs (M)"))))
+busco.order.spe=(data %>% select(c("Scientific name","Complete BUSCOs (aves_odb10)","Complete and Single-copy BUSCOs (S)")) %>% filter(`Complete BUSCOs (aves_odb10)`!="-") %>% arrange(desc(`Complete BUSCOs (aves_odb10)`),desc(`Complete and Single-copy BUSCOs (S)`)))$`Scientific name`
+data_melted.busco <- melt(data %>% select(c("Scientific name","Complete and Single-copy BUSCOs (S)","Complete and Duplicated BUSCOs (D)","Fragmented BUSCOs (F)","Missing BUSCOs (M)")) %>% na.omit(), id.vars = "Scientific name") %>% mutate(value=as.numeric(as.character(value)), variable=factor(variable,levels = rev(c("Complete and Single-copy BUSCOs (S)","Complete and Duplicated BUSCOs (D)","Fragmented BUSCOs (F)","Missing BUSCOs (M)")))) %>% na.omit()
+
+
+data_melted.busco <- data_melted.busco %>% mutate(`Scientific name`=factor(`Scientific name`,levels=busco.order.spe)) %>% na.omit()
+
+# 绘制柱状图
+ggplot(data_melted.busco, aes(x = `Scientific name`, y = value, fill = variable)) +
+  geom_col(position="stack",width = 0.5) + 
+  labs(x = "Danish Bird Genomes", y = "Percent of BUSCOs", fill = "BUSCO (aves_odb10)") +
+  theme_classic() + theme(axis.text.y = element_blank(),
+                          axis.ticks.y = element_blank(),axis.line.y = element_blank(),legend.position = "top")+
+  scale_fill_manual(breaks = c("Complete and Single-copy BUSCOs (S)","Complete and Duplicated BUSCOs (D)","Fragmented BUSCOs (F)","Missing BUSCOs (M)"),values = c("Complete and Single-copy BUSCOs (S)" = "#65A9E1", "Complete and Duplicated BUSCOs (D)" = "#4985BB", "Fragmented BUSCOs (F)" = "#EBE655","Missing BUSCOs (M)" = "#D8413C"))+
+  guides(fill=guide_legend(nrow=2))+
+  coord_flip()
+ggsave("./BUSCO_20240716_all.pdf",w=6.2,h=8)
+ggsave("./BUSCO_20240716_all.png",w=6.2,h=8)
+```
+
+
+```{r Annotation}
+data_melted.anno <- melt(data_filter %>% select(c("Scientific name","Number of total gene","Mean gene length (bp)","Mean CDS length (bp)","Mean exon number","Mean exon length (bp)","Mean intron number","Mean intron length (bp)","Number of single exon gene")), id.vars = "Scientific name") %>% mutate(value=as.numeric(as.character(value)), variable=factor(variable,levels = rev(c("Number of total gene","Mean gene length (bp)","Mean CDS length (bp)","Mean exon number","Mean exon length (bp)","Mean intron number","Mean intron length (bp)","Number of single exon gene")))) %>% na.omit()
+
+data_melted.anno.taxo<-merge(data_melted.anno,taxo) %>% filter(Order %in% Orders) %>% mutate(Order=factor(Order,levels=rev(Orders)))
+ggplot(data_melted.anno.taxo,aes(x=Order,group=Order,fill=variable))+
+  geom_boxplot(aes(y=value))+
+  facet_wrap(.~variable,scales = "free",nrow=2)+
+  theme_bw()+theme(legend.position = "top",legend.title = element_blank())+
+  labs(x="",y="",title = "Newly")+
+  coord_flip()
+
+ggsave("./Annotation_20240716_newly_Danish.pdf",w=12.2,h=8)
+ggsave("./Annotation_20240716_newly_Danish.png",w=12.2,h=8)
+
+
+data_melted.anno.taxo <- data_melted.anno.taxo %>% mutate(Tag=ifelse(grepl("umber", data_melted.anno.taxo$variable),"Number","Length"), tag2=ifelse(value<10,"V1",ifelse(value<500,"V2",ifelse(value<5000,"V3","V4"))))
+ggplot(data_melted.anno.taxo,aes(x=variable,fill=variable))+
+  geom_boxplot(aes(y=value),width = 0.2)+
+  geom_violinhalf(aes(y=value),position = position_nudge(x = .15, y = 0))+
+ facet_wrap(tag2~.,scales = "free",nrow=2)+
+  theme_bw() + theme(legend.position = "right",panel.grid = element_blank(),strip.background = element_blank(),strip.text = element_blank(),legend.title = element_blank(),axis.text.x = element_text(angle = 45,hjust=1,vjust=1))+
+  labs(x="",y="",title = "Newly")
+
+ggsave("./Annotation_20240716_newly_Danish_v3.pdf",w=8.5,h=8)
+ggsave("./Annotation_20240716_newly_Danish_v3.png",w=8.5,h=8)
+```
+
+```{r Annotation_All}
+data_melted.anno <- melt(data %>% select(c("Scientific name","Number of total gene","Mean gene length (bp)","Mean CDS length (bp)","Mean exon number","Mean exon length (bp)","Mean intron number","Mean intron length (bp)","Number of single exon gene")), id.vars = "Scientific name") %>% mutate(value=as.numeric(as.character(value)), variable=factor(variable,levels = rev(c("Number of total gene","Mean gene length (bp)","Mean CDS length (bp)","Mean exon number","Mean exon length (bp)","Mean intron number","Mean intron length (bp)","Number of single exon gene")))) %>% na.omit()
+
+data_melted.anno.taxo<-merge(data_melted.anno,taxo)%>% filter(Order %in% Orders) %>% mutate(Order=factor(Order,levels=rev(Orders)))
+
+ggplot(data_melted.anno.taxo,aes(x=Order,group=Order,fill=variable))+
+  geom_boxplot(aes(y=value))+
+  facet_wrap(.~variable,scales = "free",nrow=2)+
+  theme_bw()+theme(legend.position = "top",legend.title = element_blank())+
+  labs(x="",y="")+
+  coord_flip()
+
+ggsave("./Annotation_20240716_all_Danish.pdf",w=12.2,h=8)
+ggsave("./Annotation_20240716_all_Danish.png",w=12.2,h=8)
+
+
+data_melted.anno.taxo <- data_melted.anno.taxo %>% mutate(Tag=ifelse(grepl("umber", data_melted.anno.taxo$variable),"Number","Length"), tag2=ifelse(value<10,"V1",ifelse(value<500,"V2",ifelse(value<5000,"V3","V4"))))
+ggplot(data_melted.anno.taxo,aes(x=variable,fill=variable))+
+  geom_boxplot(aes(y=value),width = 0.2)+
+  geom_violinhalf(aes(y=value),position = position_nudge(x = .15, y = 0))+
+ facet_wrap(tag2~.,scales = "free",nrow=2)+
+  theme_bw() + theme(legend.position = "right",panel.grid = element_blank(),strip.background = element_blank(),strip.text = element_blank(),legend.title = element_blank(),axis.text.x = element_text(angle = 45,hjust=1,vjust=1))+
+  labs(x="",y="")
+
+ggsave("./Annotation_20240716_all_Danish_v2.pdf",w=8.5,h=8)
+ggsave("./Annotation_20240716_all_Danish_v2.png",w=8.5,h=8)
+```
+
+```{r TE_All}
+data_melted.anno.te <- melt(data %>% select(c("Scientific name","Total (%)","LINE (%)","SINE (%)","LTR (%)","Unknown (%)")), id.vars = "Scientific name") %>% mutate(value=as.numeric(as.character(value)), variable=factor(variable,levels = c("Total (%)","LINE (%)","SINE (%)","LTR (%)","Unknown (%)"))) %>% na.omit() %>% filter(`Scientific name`!="Ficedula albicollis")
+
+data_melted.anno.te.taxo<-merge(data_melted.anno.te,taxo) %>% filter(Order %in% Orders) %>% mutate(Order=factor(Order,levels=rev(Orders)))
+
+ggplot(data_melted.anno.te.taxo,aes(x=Order,group=Order,fill=Order))+
+  geom_boxplot(aes(y=value),outlier.size = .5)+
+  facet_wrap(.~variable,scales = "free",ncol = 2)+
+  theme_bw()+theme(legend.position = "none",legend.title = element_blank())+
+  labs(x="",y="",title="All")+
+  coord_flip()
+ggsave("./TE_annotation_20240716_all_Danish.pdf",w=6,h=8)
+ggsave("./TE_annotation_20240716_all_Danish.png",w=6,h=8)
+```
+
+```{r TE_Newly}
+data_melted.anno.te <- melt(data_filter %>% select(c("Scientific name","Total (%)","LINE (%)","SINE (%)","LTR (%)","Unknown (%)")), id.vars = "Scientific name") %>% mutate(value=as.numeric(as.character(value)), variable=factor(variable,levels = c("Total (%)","LINE (%)","SINE (%)","LTR (%)","Unknown (%)"))) %>% na.omit()
+
+data_melted.anno.te.taxo<-merge(data_melted.anno.te,taxo) %>% filter(Order %in% Orders) %>% mutate(Order=factor(Order,levels=rev(Orders)))
+
+ggplot(data_melted.anno.te.taxo,aes(x=Order,group=Order,fill=Order))+
+  geom_boxplot(aes(y=value),outlier.size = .5)+
+  facet_wrap(.~variable,scales = "free",ncol = 2)+
+  theme_bw()+theme(legend.position = "none",legend.title = element_blank())+
+  labs(x="",y="",title="Newly")+
+  coord_flip()
+ggsave("./TE_annotation_20240716_newly_Danish.pdf",w=6,h=8)
+ggsave("./TE_annotation_20240716_newly_Danish.png",w=6,h=8)
+```
+
+```{r newly assembly}
+
+data_melted.as <- melt(data_filter %>% mutate("Genome Size"=`Total Length (bp)`) %>% select(c("Scientific name","Contig N50","Scaffold N50","Genome Size")), id.vars = "Scientific name") %>% mutate(value=as.numeric(as.character(value)))
+data_melted.as <- melt(data_filter %>% mutate("Genome Size"=`Total Length (bp)`) %>% select(c("Scientific name","Contig N50","Scaffold N50","Genome Size")), id.vars = "Scientific name") %>% mutate(value=as.numeric(as.character(value)))
+data_melted.as <- data_melted.as %>% mutate(variable=factor(variable,levels=c("Genome Size","Scaffold N50","Contig N50")))
+
+data_melted.as.CN <- data_melted.as %>% filter(variable=="Contig N50") %>% 
+  mutate(group=ifelse(value<10000,"<10k",
+                      ifelse(value<25000,"10k - 25k",
+                      ifelse(value<50000,"25k - 50k",
+                             ifelse(value<75000,"50k - 75k",
+                             ifelse(value<100000,"75k - 100k",
+                                    ifelse(value<250000,"100k - 250k",
+                                           ifelse(value<500000,"250k - 500k",">500k"))))))))
+data_melted.as.SN <- data_melted.as %>% filter(variable=="Scaffold N50") %>% 
+  mutate(group=ifelse(value<10000,"<10k",
+                      ifelse(value<100000,"10k - 100k",
+                             ifelse(value<500000,"100k - 500k",
+                                    ifelse(value<1000000,"500k - 1M",
+                                           ifelse(value<5000000,"1M - 5M",
+                                                  ifelse(value<10000000,"5M - 10M",
+                                                         ifelse(value<20000000,"10M - 20M",
+                                                                ifelse(value<30000000,"20M - 30M",">30M")))))))))
+
+data_melted.as_v2<-rbind.data.frame(data_melted.as.SN,data_melted.as.CN) %>% mutate(group=factor(group,levels=c("<10k","10k - 25k","25k - 50k", "50k - 75k","75k - 100k","100k - 250k","250k - 500k", "10k - 100k", "100k - 500k", ">500k", "500k - 1M", "1M - 5M", "5M - 10M", "10M - 20M","20M - 30M", ">30M")))
+
+ggplot(data_filter %>% mutate("Scaffold N50"=as.numeric(as.character(`Scaffold N50`)), "Genome Size (Gb)"=(`Total Length (bp)`)/1000000000),
+       aes(x=`Scaffold N50`,y=`Contig N50`,fill=`Construct library technology`,color=`Construct library technology`))+
+  geom_point(size=1)+
+  # geom_line()+
+  # facet_grid(variable~.,scales = "free_y")+
+  scale_y_log10(labels = scales::label_log(base = 10,digits=2))+
+  scale_x_log10(labels = scales::label_log(base = 10,digits=2))+
+  # scale_color_gradient(low = "pink",high = "red")+
+  # scale_fill_gradient(low = "pink",high = "red")+
+  labs(x  = "Scaffold N50 (bp)", y = "Contig N50 (bp)",fill="Strategy",color="Strategy") +
+  theme_classic() + 
+  theme(legend.position = c(0.15,0.85),panel.grid = element_blank(),strip.background = element_blank())
+ggsave("./assembly_20240716_newly_Danish.pdf",w=5,h=5)
+ggsave("./assembly_20240716_newly_Danish.png",w=5,h=5)
+
+ggplot(merge(data_melted.as_v2,data_filter %>% select(c("Scientific name",`Construct library technology`)),by="Scientific name"),aes(x=group,group=variable,fill=variable))+
+  geom_bar(stat = "count")+
+  geom_text(stat='count',aes(label=..count..), vjust=0.4, color="black", size=3)+
+  # facet_wrap(.~variable,nrow=2,scales = "free")+
+  labs(x  = "Danish Bird Genomes", y = "Counts",fill="",color="") +
+  theme_classic() + theme(legend.position = "right",panel.grid = element_blank(),strip.background = element_blank(),
+                          axis.text.x = element_text(angle = 45,hjust=1,vjust=1))+
+  facet_wrap(variable~`Construct library technology`,nrow=2,scales = "free")
+ggsave("./assembly_20240716_newly_Danish_v2.pdf",w=10,h=8)
+ggsave("./assembly_20240716_newly_Danish_v2.png",w=10,h=8)
+
+```
+
+
+```{r newly BUSCO}
+
+busco.order.spe=(data_filter %>% select(c("Scientific name","Complete BUSCOs (aves_odb10)","Complete and Single-copy BUSCOs (S)")) %>% filter(`Complete and Single-copy BUSCOs (S)`!="-") %>% arrange(desc(`Complete BUSCOs (aves_odb10)`),desc(`Complete and Single-copy BUSCOs (S)`)))$`Scientific name`
+# busco.order.spe=(data_filter %>% arrange(desc(`Complete BUSCOs (aves_odb10)`),desc(`Complete and Single-copy BUSCOs (S)`)))$`Scientific name`
+data_melted.busco <- melt(data_filter %>% select(c("Scientific name","Complete and Single-copy BUSCOs (S)","Complete and Duplicated BUSCOs (D)","Fragmented BUSCOs (F)","Missing BUSCOs (M)")), id.vars = "Scientific name") %>% mutate(value=as.numeric(as.character(value)), variable=factor(variable,levels = rev(c("Complete and Single-copy BUSCOs (S)","Complete and Duplicated BUSCOs (D)","Fragmented BUSCOs (F)","Missing BUSCOs (M)")))) %>% na.omit()
+
+
+data_melted.busco <- data_melted.busco %>% mutate(`Scientific name`=factor(`Scientific name`,levels=busco.order.spe))
+
+# 绘制柱状图
+ggplot(merge(data_melted.busco,data_filter %>% select(c("Scientific name",`Construct library technology`)),by="Scientific name")
+       , aes(x = `Scientific name`, y = value, fill = variable)) +
+  geom_col(position="stack",width = 0.5) + 
+  labs(x = "Danish Bird Genomes", y = "Percent of BUSCOs", fill = "BUSCO (aves_odb10)") +
+  theme_classic() + theme(axis.text.y = element_blank(),
+                          axis.ticks.y = element_blank(),axis.line.y = element_blank(),legend.position = "top")+
+  scale_fill_manual(breaks = c("Complete and Single-copy BUSCOs (S)","Complete and Duplicated BUSCOs (D)","Fragmented BUSCOs (F)","Missing BUSCOs (M)"),values = c("Complete and Single-copy BUSCOs (S)" = "#65A9E1", "Complete and Duplicated BUSCOs (D)" = "#4985BB", "Fragmented BUSCOs (F)" = "#EBE655","Missing BUSCOs (M)" = "#D8413C"))+
+  guides(fill=guide_legend(nrow=2))+
+  coord_flip()+
+  facet_wrap(.~`Construct library technology`,ncol = 1,scales = "free_y")
+ggsave("./BUSCO_20240716_newly_Danish.pdf",w=6.2,h=8)
+ggsave("./BUSCO_20240716_newly_Danish.png",w=6.2,h=8)
+```
+
