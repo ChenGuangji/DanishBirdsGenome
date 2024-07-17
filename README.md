@@ -1,4 +1,4 @@
-# DanishBirdsGenome
+# Danish Birds Genome Project
 Code used in Danish Birds Genome Project
 
 ## Visualization
