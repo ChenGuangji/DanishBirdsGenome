@@ -18,11 +18,13 @@ library(see)
 
 setwd("/Users/chenguangji/Desktop/02.B10K/05.丹麦鸟DBG/Plot/")
 # 读取数据
-data = read_excel("Plot_20240716.xlsx") 
+data = read_excel("Plot_20250911.xlsx") 
 data_filter <- data %>% filter(Note=="Paper & Website")
-data_filter$`Construct library technology`[data_filter$`Construct library technology`=="st-LFR technology"]="st-LFR"
-data_filter$`Construct library technology`[data_filter$`Construct library technology`=="Standard Next-Generation technology"]="short-insert"
-data_filter$`Construct library technology`[data_filter$`Construct library technology`=="10X Genomics Linked reads"]="10X"
+data_filter$`Construct library technology`[data_filter$`Construct library technology`=="st-LFR technology"]="st-LFR technology (n=336)"
+data_filter$`Construct library technology`[data_filter$`Construct library technology`=="Standard Next-Generation technology"]="Standard Next-Generation technology (n=6)"
+data_filter$`Construct library technology`[data_filter$`Construct library technology`=="10X Genomics Linked reads"]="10X Genomics Linked reads (n=8)"
+
+data_filter$`Construct library technology` = factor(data_filter$`Construct library technology`,levels=c("10X Genomics Linked reads (n=8)","Standard Next-Generation technology (n=6)","st-LFR technology (n=336)"))
 
 data_filter.pub <- data %>% filter(Note=="Published")
 
@@ -45,8 +47,8 @@ ggplot(data_melted.as %>% filter(variable!="Genome Size"),aes(x=`Scientific name
   scale_y_log10(labels = scales::label_log(base = 10,digits=2))+
   labs(x  = "Danish Bird Genomes", y = "Unit (bp)",fill="",color="") +
   theme_classic() + theme(axis.text.x = element_blank(),axis.ticks.x = element_blank(),axis.line.x = element_blank(),legend.position = "top",panel.grid = element_blank(),strip.background = element_blank())
-ggsave("./assembly_20240716_all.pdf",w=6.2,h=5)
-ggsave("./assembly_20240716_all.png",w=6.2,h=5)
+ggsave("./assembly_20250911_all.pdf",w=6.2,h=5)
+ggsave("./assembly_20250911_all.png",w=6.2,h=5)
 
 data_melted.as.CN <- data_melted.as %>% filter(variable=="Contig N50") %>% 
   mutate(group=ifelse(value<10000,"<10k",
@@ -75,8 +77,8 @@ ggplot(data_melted.as_v2,aes(x=group,group=variable,fill=variable))+
   labs(x  = "Danish Bird Genomes", y = "Counts",fill="",color="") +
   theme_classic() + theme(legend.position = "right",panel.grid = element_blank(),strip.background = element_blank(),
                           axis.text.x = element_text(angle = 45,hjust=1,vjust=1))
-ggsave("./assembly_20240716_all_v2.pdf",w=6.2,h=8)
-ggsave("./assembly_20240716_all_v2.png",w=6.2,h=8)
+ggsave("./assembly_20250911_all_v2.pdf",w=6.2,h=8)
+ggsave("./assembly_20250911_all_v2.png",w=6.2,h=8)
 
 
 ggplot(data %>% mutate("Scaffold N50"=as.numeric(as.character(`Scaffold N50`)), "Genome Size (Gb)"=(`Total Length (bp)`)/1000000000),
@@ -91,8 +93,8 @@ ggplot(data %>% mutate("Scaffold N50"=as.numeric(as.character(`Scaffold N50`)), 
   labs(x  = "Scaffold N50 (bp)", y = "Contig N50 (bp)",fill="Genome Size\n(Gb)",color="Genome Size\n(Gb)") +
   theme_classic() + 
   theme(legend.position = c(0.2,0.75),panel.grid = element_blank(),strip.background = element_blank())
-ggsave("./assembly_20240716_all_v3.pdf",w=5.5,h=5.5)
-ggsave("./assembly_20240716_all_v3.png",w=5.5,h=5.5)
+ggsave("./assembly_20250911_all_v3.pdf",w=5.5,h=5.5)
+ggsave("./assembly_20250911_all_v3.png",w=5.5,h=5.5)
 
 ```
 
@@ -116,8 +118,8 @@ ggplot(data_melted.busco, aes(x = `Scientific name`, y = value, fill = variable)
   scale_fill_manual(breaks = c("Complete and Single-copy BUSCOs (S)","Complete and Duplicated BUSCOs (D)","Fragmented BUSCOs (F)","Missing BUSCOs (M)"),values = c("Complete and Single-copy BUSCOs (S)" = "#65A9E1", "Complete and Duplicated BUSCOs (D)" = "#4985BB", "Fragmented BUSCOs (F)" = "#EBE655","Missing BUSCOs (M)" = "#D8413C"))+
   guides(fill=guide_legend(nrow=2))+
   coord_flip()
-ggsave("./BUSCO_20240716_all.pdf",w=6.2,h=8)
-ggsave("./BUSCO_20240716_all.png",w=6.2,h=8)
+ggsave("./BUSCO_20250911_all.pdf",w=6.2,h=8)
+ggsave("./BUSCO_20250911_all.png",w=6.2,h=8)
 ```
 
 
@@ -132,8 +134,8 @@ ggplot(data_melted.anno.taxo,aes(x=Order,group=Order,fill=variable))+
   labs(x="",y="",title = "Newly")+
   coord_flip()
 
-ggsave("./Annotation_20240716_newly_Danish.pdf",w=12.2,h=8)
-ggsave("./Annotation_20240716_newly_Danish.png",w=12.2,h=8)
+ggsave("./Annotation_20250911_newly_Danish.pdf",w=12.2,h=8)
+ggsave("./Annotation_20250911_newly_Danish.png",w=12.2,h=8)
 
 
 data_melted.anno.taxo <- data_melted.anno.taxo %>% mutate(Tag=ifelse(grepl("umber", data_melted.anno.taxo$variable),"Number","Length"), tag2=ifelse(value<10,"V1",ifelse(value<500,"V2",ifelse(value<5000,"V3","V4"))))
@@ -144,8 +146,8 @@ ggplot(data_melted.anno.taxo,aes(x=variable,fill=variable))+
   theme_bw() + theme(legend.position = "right",panel.grid = element_blank(),strip.background = element_blank(),strip.text = element_blank(),legend.title = element_blank(),axis.text.x = element_text(angle = 45,hjust=1,vjust=1))+
   labs(x="",y="",title = "Newly")
 
-ggsave("./Annotation_20240716_newly_Danish_v3.pdf",w=8.5,h=8)
-ggsave("./Annotation_20240716_newly_Danish_v3.png",w=8.5,h=8)
+ggsave("./Annotation_20250911_newly_Danish_v3.pdf",w=8.5,h=8)
+ggsave("./Annotation_20250911_newly_Danish_v3.png",w=8.5,h=8)
 ```
 
 ```{r Annotation_All}
@@ -160,8 +162,8 @@ ggplot(data_melted.anno.taxo,aes(x=Order,group=Order,fill=variable))+
   labs(x="",y="")+
   coord_flip()
 
-ggsave("./Annotation_20240716_all_Danish.pdf",w=12.2,h=8)
-ggsave("./Annotation_20240716_all_Danish.png",w=12.2,h=8)
+ggsave("./Annotation_20250911_all_Danish.pdf",w=12.2,h=8)
+ggsave("./Annotation_20250911_all_Danish.png",w=12.2,h=8)
 
 
 data_melted.anno.taxo <- data_melted.anno.taxo %>% mutate(Tag=ifelse(grepl("umber", data_melted.anno.taxo$variable),"Number","Length"), tag2=ifelse(value<10,"V1",ifelse(value<500,"V2",ifelse(value<5000,"V3","V4"))))
@@ -172,8 +174,8 @@ ggplot(data_melted.anno.taxo,aes(x=variable,fill=variable))+
   theme_bw() + theme(legend.position = "right",panel.grid = element_blank(),strip.background = element_blank(),strip.text = element_blank(),legend.title = element_blank(),axis.text.x = element_text(angle = 45,hjust=1,vjust=1))+
   labs(x="",y="")
 
-ggsave("./Annotation_20240716_all_Danish_v2.pdf",w=8.5,h=8)
-ggsave("./Annotation_20240716_all_Danish_v2.png",w=8.5,h=8)
+ggsave("./Annotation_20250911_all_Danish_v2.pdf",w=8.5,h=8)
+ggsave("./Annotation_20250911_all_Danish_v2.png",w=8.5,h=8)
 ```
 
 ```{r TE_All}
@@ -187,8 +189,8 @@ ggplot(data_melted.anno.te.taxo,aes(x=Order,group=Order,fill=Order))+
   theme_bw()+theme(legend.position = "none",legend.title = element_blank())+
   labs(x="",y="",title="All")+
   coord_flip()
-ggsave("./TE_annotation_20240716_all_Danish.pdf",w=6,h=8)
-ggsave("./TE_annotation_20240716_all_Danish.png",w=6,h=8)
+ggsave("./TE_annotation_20250911_all_Danish.pdf",w=6,h=8)
+ggsave("./TE_annotation_20250911_all_Danish.png",w=6,h=8)
 ```
 
 ```{r TE_Newly}
@@ -202,8 +204,8 @@ ggplot(data_melted.anno.te.taxo,aes(x=Order,group=Order,fill=Order))+
   theme_bw()+theme(legend.position = "none",legend.title = element_blank())+
   labs(x="",y="",title="Newly")+
   coord_flip()
-ggsave("./TE_annotation_20240716_newly_Danish.pdf",w=6,h=8)
-ggsave("./TE_annotation_20240716_newly_Danish.png",w=6,h=8)
+ggsave("./TE_annotation_20250911_newly_Danish.pdf",w=6,h=8)
+ggsave("./TE_annotation_20250911_newly_Danish.png",w=6,h=8)
 ```
 
 ```{r newly assembly}
@@ -244,8 +246,8 @@ ggplot(data_filter %>% mutate("Scaffold N50"=as.numeric(as.character(`Scaffold N
   labs(x  = "Scaffold N50 (bp)", y = "Contig N50 (bp)",fill="Strategy",color="Strategy") +
   theme_classic() + 
   theme(legend.position = c(0.15,0.85),panel.grid = element_blank(),strip.background = element_blank())
-ggsave("./assembly_20240716_newly_Danish.pdf",w=5,h=5)
-ggsave("./assembly_20240716_newly_Danish.png",w=5,h=5)
+ggsave("./assembly_20250911_newly_Danish.pdf",w=5,h=5)
+ggsave("./assembly_20250911_newly_Danish.png",w=5,h=5)
 
 ggplot(merge(data_melted.as_v2,data_filter %>% select(c("Scientific name",`Construct library technology`)),by="Scientific name"),aes(x=group,group=variable,fill=variable))+
   geom_bar(stat = "count")+
@@ -255,8 +257,8 @@ ggplot(merge(data_melted.as_v2,data_filter %>% select(c("Scientific name",`Const
   theme_classic() + theme(legend.position = "right",panel.grid = element_blank(),strip.background = element_blank(),
                           axis.text.x = element_text(angle = 45,hjust=1,vjust=1))+
   facet_wrap(variable~`Construct library technology`,nrow=2,scales = "free")
-ggsave("./assembly_20240716_newly_Danish_v2.pdf",w=10,h=8)
-ggsave("./assembly_20240716_newly_Danish_v2.png",w=10,h=8)
+ggsave("./assembly_20250911_newly_Danish_v2.pdf",w=10,h=8)
+ggsave("./assembly_20250911_newly_Danish_v2.png",w=10,h=8)
 
 ```
 
@@ -281,7 +283,7 @@ ggplot(merge(data_melted.busco,data_filter %>% select(c("Scientific name",`Const
   guides(fill=guide_legend(nrow=2))+
   coord_flip()+
   facet_wrap(.~`Construct library technology`,ncol = 1,scales = "free_y")
-ggsave("./BUSCO_20240716_newly_Danish.pdf",w=6.2,h=8)
-ggsave("./BUSCO_20240716_newly_Danish.png",w=6.2,h=8)
+ggsave("./BUSCO_20250911_newly_Danish.pdf",w=6.2,h=8)
+ggsave("./BUSCO_20250911_newly_Danish.png",w=6.2,h=8)
 ```
 
