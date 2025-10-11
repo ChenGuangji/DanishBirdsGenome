@@ -11,3 +11,10 @@ Code used in Danish Birds Genome Project
 * BUSCO Statistics
 * Protein Coding Sequence Annotation Statistics
 * Repeat Sequence Annotation Statistics
+
+## License
+
+This directory uses **dual licensing** for clarity:
+
+- **Scripts** (`*.sh`, `*.py`, `*.Rmd`, and `*.pl`) are licensed under the [MIT License](./LICENSE)
+- **Datasets** (`*.xlsx`) are licensed under the [Creative Commons Public Licenses (CC0)](./LICENSE-CC0)
